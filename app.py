@@ -22,7 +22,7 @@ st.markdown("""
     html, body, [class*="css"] {
         font-family: 'Inter', sans-serif;
         background-color: #f8f9fa; 
-        color: #1f2937; /* Force dark text */
+        color: #1f2937; /* Force dark text generally */
     }
 
     /* Remove top padding for a cleaner header */
@@ -47,7 +47,7 @@ st.markdown("""
     }
 
     p, li, label {
-        color: #374151 !important; /* Ensure readable text in dark mode */
+        color: #374151 !important;
     }
 
     /* CARD DESIGN SYSTEM */
@@ -77,7 +77,7 @@ st.markdown("""
     }
 
     .st-card-value {
-        color: #111827; /* Fallback */
+        color: #111827; 
         font-size: 2rem;
         font-weight: 700;
     }
@@ -94,10 +94,10 @@ st.markdown("""
     .text-red { color: #dc2626 !important; }
     .text-blue { color: #2563eb !important; }
 
-    /* Button Styling */
+    /* Button Styling - STRICT WHITE TEXT ENFORCEMENT */
     .stButton > button {
         background-color: #2563eb;
-        color: white !important;
+        color: #ffffff !important; /* Force White Text */
         border: none;
         border-radius: 8px;
         padding: 0.5rem 1rem;
@@ -105,9 +105,15 @@ st.markdown("""
         width: 100%;
         transition: background-color 0.2s;
     }
+    
+    /* Target inner text specifically to override any theme defaults */
+    .stButton > button p {
+        color: #ffffff !important; 
+    }
+
     .stButton > button:hover {
         background-color: #1d4ed8;
-        color: white !important;
+        color: #ffffff !important;
     }
 
     /* Alert Boxes */
@@ -354,14 +360,14 @@ if st.session_state.get('run'):
 st.markdown("---")
 st.header("3. Network Impact")
 
-# Table with fixed colors for Dark Mode compatibility
+# I applied the white color directly to the TH tags below
 impact_html = """
 <div style="overflow-x: auto;">
   <table style="width:100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    <tr style="background-color: #1e3a8a; color: white !important; text-align: left;">
-      <th style="padding: 12px 15px;">Metric</th>
-      <th style="padding: 12px 15px;">Without EDITT</th>
-      <th style="padding: 12px 15px;">With EDITT</th>
+    <tr style="background-color: #1e3a8a; text-align: left;">
+      <th style="padding: 12px 15px; color: #ffffff !important;">Metric</th>
+      <th style="padding: 12px 15px; color: #ffffff !important;">Without EDITT</th>
+      <th style="padding: 12px 15px; color: #ffffff !important;">With EDITT</th>
     </tr>
     <tr style="background-color: white; border-bottom: 1px solid #e5e7eb;">
       <td style="padding: 12px 15px; font-weight: bold; color: #1f2937;">Lender Loss on Default</td>
