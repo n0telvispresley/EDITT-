@@ -12,17 +12,17 @@ st.set_page_config(
 )
 
 # -----------------------------------------------------------------------------
-# 2. CUSTOM CSS (THE BEAUTIFICATION LAYER)
+# 2. CUSTOM CSS (Dark Mode Proof & Beautified)
 # -----------------------------------------------------------------------------
 st.markdown("""
     <style>
-    /* Global Settings */
+    /* Global Settings - Force Light Theme for Consistency */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     
     html, body, [class*="css"] {
         font-family: 'Inter', sans-serif;
-        background-color: #f8f9fa; /* Light Grey Background */
-        color: #1f2937;
+        background-color: #f8f9fa; 
+        color: #1f2937; /* Force dark text */
     }
 
     /* Remove top padding for a cleaner header */
@@ -33,17 +33,21 @@ st.markdown("""
 
     /* HEADER STYLES */
     h1 {
-        color: #111827;
+        color: #111827 !important;
         font-weight: 700;
         letter-spacing: -0.025em;
     }
     
     h2 {
-        color: #374151;
+        color: #374151 !important;
         font-weight: 600;
         font-size: 1.25rem;
         margin-top: 2rem;
         margin-bottom: 1rem;
+    }
+
+    p, li, label {
+        color: #374151 !important; /* Ensure readable text in dark mode */
     }
 
     /* CARD DESIGN SYSTEM */
@@ -64,7 +68,7 @@ st.markdown("""
     }
 
     .st-card-title {
-        color: #6b7280;
+        color: #6b7280 !important;
         font-size: 0.875rem;
         font-weight: 600;
         text-transform: uppercase;
@@ -73,27 +77,27 @@ st.markdown("""
     }
 
     .st-card-value {
-        color: #111827;
+        color: #111827; /* Fallback */
         font-size: 2rem;
         font-weight: 700;
     }
 
     .st-card-subtitle {
-        color: #9ca3af;
+        color: #9ca3af !important;
         font-size: 0.875rem;
         margin-top: 4px;
     }
 
-    /* Dynamic Colors for Text */
-    .text-green { color: #059669; }
-    .text-orange { color: #d97706; }
-    .text-red { color: #dc2626; }
-    .text-blue { color: #2563eb; }
+    /* Dynamic Colors */
+    .text-green { color: #059669 !important; }
+    .text-orange { color: #d97706 !important; }
+    .text-red { color: #dc2626 !important; }
+    .text-blue { color: #2563eb !important; }
 
     /* Button Styling */
     .stButton > button {
         background-color: #2563eb;
-        color: white;
+        color: white !important;
         border: none;
         border-radius: 8px;
         padding: 0.5rem 1rem;
@@ -103,7 +107,7 @@ st.markdown("""
     }
     .stButton > button:hover {
         background-color: #1d4ed8;
-        color: white;
+        color: white !important;
     }
 
     /* Alert Boxes */
@@ -112,7 +116,7 @@ st.markdown("""
         border-left: 5px solid #059669;
         padding: 1rem;
         border-radius: 4px;
-        color: #065f46;
+        color: #065f46 !important;
         margin-bottom: 1rem;
     }
     .warning-box {
@@ -120,7 +124,7 @@ st.markdown("""
         border-left: 5px solid #d97706;
         padding: 1rem;
         border-radius: 4px;
-        color: #92400e;
+        color: #92400e !important;
         margin-bottom: 1rem;
     }
     .error-box {
@@ -128,7 +132,7 @@ st.markdown("""
         border-left: 5px solid #dc2626;
         padding: 1rem;
         border-radius: 4px;
-        color: #991b1b;
+        color: #991b1b !important;
         margin-bottom: 1rem;
     }
     </style>
@@ -162,7 +166,7 @@ def get_risk_assessment(score, network_flag):
 # 4. SIDEBAR
 # -----------------------------------------------------------------------------
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2454/2454269.png", width=50) # Generic Shield Icon
+    st.image("https://cdn-icons-png.flaticon.com/512/2454/2454269.png", width=50) 
     st.title("Admin Controls")
     st.markdown("**Demo IDs:**")
     st.code("1001")
@@ -219,7 +223,7 @@ if st.button("👉 Analyze Risk & Eligibility"):
             'run': True, 'score': score, 'decision': decision,
             'band': band, 'premium_pct': premium_pct,
             'color': color_class, 'flag': profile['network_flag'],
-            'amt': loan_amount
+            'amt': loan_amount, 'bid': borrower_id
         })
 
 # Display Results
@@ -284,6 +288,17 @@ if st.session_state.get('run'):
         </div>
         """, unsafe_allow_html=True)
 
+    # API SIMULATION (RESTORED)
+    with st.expander("🔌 View API Simulation (JSON)"):
+        st.json({
+            "status": "success",
+            "borrower_id": st.session_state['bid'],
+            "score": st.session_state['score'],
+            "risk_band": st.session_state['band'],
+            "decision": st.session_state['decision'],
+            "premium_ngn": premium_amt
+        })
+
     # ---------------------------
     # SECTION 2: DEFAULT SIMULATION
     # ---------------------------
@@ -322,6 +337,16 @@ if st.session_state.get('run'):
                     <div class="st-card-subtitle">Only 20% Risk Exposure</div>
                 </div>
                 """, unsafe_allow_html=True)
+                
+            # API SIMULATION DEFAULT (RESTORED)
+            with st.expander("🔌 View Webhook Payload (JSON)"):
+                st.json({
+                    "event": "loan_default",
+                    "claim_id": "CLM-99283",
+                    "payout_amount": payout,
+                    "borrower_action": "flagged_global",
+                    "network_update": "blacklisted"
+                })
 
 # ---------------------------
 # SECTION 3: ECOSYSTEM
@@ -329,28 +354,29 @@ if st.session_state.get('run'):
 st.markdown("---")
 st.header("3. Network Impact")
 
+# Table with fixed colors for Dark Mode compatibility
 impact_html = """
 <div style="overflow-x: auto;">
   <table style="width:100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    <tr style="background-color: #1e3a8a; color: white; text-align: left;">
+    <tr style="background-color: #1e3a8a; color: white !important; text-align: left;">
       <th style="padding: 12px 15px;">Metric</th>
       <th style="padding: 12px 15px;">Without EDITT</th>
       <th style="padding: 12px 15px;">With EDITT</th>
     </tr>
     <tr style="background-color: white; border-bottom: 1px solid #e5e7eb;">
-      <td style="padding: 12px 15px; font-weight: bold;">Lender Loss on Default</td>
-      <td style="padding: 12px 15px; color: #dc2626;">100% of Principal</td>
+      <td style="padding: 12px 15px; font-weight: bold; color: #1f2937;">Lender Loss on Default</td>
+      <td style="padding: 12px 15px; color: #dc2626; font-weight: bold;">100% of Principal</td>
       <td style="padding: 12px 15px; color: #059669; font-weight: bold;">20% of Principal</td>
     </tr>
     <tr style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-      <td style="padding: 12px 15px; font-weight: bold;">Recovery Speed</td>
-      <td style="padding: 12px 15px;">90+ Days</td>
+      <td style="padding: 12px 15px; font-weight: bold; color: #1f2937;">Recovery Speed</td>
+      <td style="padding: 12px 15px; color: #1f2937;">90+ Days</td>
       <td style="padding: 12px 15px; color: #2563eb; font-weight: bold;">48 Hours</td>
     </tr>
     <tr style="background-color: white;">
-      <td style="padding: 12px 15px; font-weight: bold;">Fraud Prevention</td>
-      <td style="padding: 12px 15px;">Internal Data Only</td>
-      <td style="padding: 12px 15px; font-weight: bold;">Shared Network Blacklist</td>
+      <td style="padding: 12px 15px; font-weight: bold; color: #1f2937;">Fraud Prevention</td>
+      <td style="padding: 12px 15px; color: #1f2937;">Internal Data Only</td>
+      <td style="padding: 12px 15px; font-weight: bold; color: #1f2937;">Shared Network Blacklist</td>
     </tr>
   </table>
 </div>
