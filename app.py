@@ -106,7 +106,6 @@ st.markdown("""
         transition: background-color 0.2s;
     }
     
-    /* Target inner text specifically to override any theme defaults */
     .stButton > button p {
         color: #ffffff !important; 
     }
@@ -294,7 +293,7 @@ if st.session_state.get('run'):
         </div>
         """, unsafe_allow_html=True)
 
-    # API SIMULATION (RESTORED)
+    # API SIMULATION
     with st.expander("🔌 View API Simulation (JSON)"):
         st.json({
             "status": "success",
@@ -344,7 +343,7 @@ if st.session_state.get('run'):
                 </div>
                 """, unsafe_allow_html=True)
                 
-            # API SIMULATION DEFAULT (RESTORED)
+            # API SIMULATION DEFAULT
             with st.expander("🔌 View Webhook Payload (JSON)"):
                 st.json({
                     "event": "loan_default",
@@ -360,14 +359,14 @@ if st.session_state.get('run'):
 st.markdown("---")
 st.header("3. Network Impact")
 
-# I applied the white color directly to the TH tags below
+# CHANGED: Header Background is now Light Blue (#dbeafe), Text is Dark Blue (#1e3a8a)
 impact_html = """
 <div style="overflow-x: auto;">
   <table style="width:100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    <tr style="background-color: #1e3a8a; text-align: left;">
-      <th style="padding: 12px 15px; color: #ffffff !important;">Metric</th>
-      <th style="padding: 12px 15px; color: #ffffff !important;">Without EDITT</th>
-      <th style="padding: 12px 15px; color: #ffffff !important;">With EDITT</th>
+    <tr style="background-color: #dbeafe; border-bottom: 2px solid #2563eb; text-align: left;">
+      <th style="padding: 12px 15px; color: #1e3a8a !important; font-weight: bold;">Metric</th>
+      <th style="padding: 12px 15px; color: #1e3a8a !important; font-weight: bold;">Without EDITT</th>
+      <th style="padding: 12px 15px; color: #1e3a8a !important; font-weight: bold;">With EDITT</th>
     </tr>
     <tr style="background-color: white; border-bottom: 1px solid #e5e7eb;">
       <td style="padding: 12px 15px; font-weight: bold; color: #1f2937;">Lender Loss on Default</td>
