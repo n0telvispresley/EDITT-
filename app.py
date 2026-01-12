@@ -1,217 +1,359 @@
 import streamlit as st
 import time
-import json
 import pandas as pd
 
 # -----------------------------------------------------------------------------
-# CONFIGURATION & STYLING
+# 1. PAGE CONFIGURATION
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="EDITT Insurance Demo",
+    page_title="EDITT | Default Protection",
     page_icon="🛡️",
     layout="centered"
 )
 
-# Custom CSS to hide default Streamlit elements for a cleaner pitch look
+# -----------------------------------------------------------------------------
+# 2. CUSTOM CSS (THE BEAUTIFICATION LAYER)
+# -----------------------------------------------------------------------------
 st.markdown("""
     <style>
-    .main { padding-top: 2rem; }
-    h1 { color: #2C3E50; }
-    .stButton>button { width: 100%; border-radius: 5px; font-weight: bold; }
-    .metric-container { background-color: #f0f2f6; padding: 10px; border-radius: 10px; }
+    /* Global Settings */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8f9fa; /* Light Grey Background */
+        color: #1f2937;
+    }
+
+    /* Remove top padding for a cleaner header */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 5rem;
+    }
+
+    /* HEADER STYLES */
+    h1 {
+        color: #111827;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+    }
+    
+    h2 {
+        color: #374151;
+        font-weight: 600;
+        font-size: 1.25rem;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+    }
+
+    /* CARD DESIGN SYSTEM */
+    .st-card {
+        background-color: #ffffff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e5e7eb;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        text-align: center;
+        height: 100%;
+    }
+    
+    .st-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .st-card-title {
+        color: #6b7280;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 8px;
+    }
+
+    .st-card-value {
+        color: #111827;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    .st-card-subtitle {
+        color: #9ca3af;
+        font-size: 0.875rem;
+        margin-top: 4px;
+    }
+
+    /* Dynamic Colors for Text */
+    .text-green { color: #059669; }
+    .text-orange { color: #d97706; }
+    .text-red { color: #dc2626; }
+    .text-blue { color: #2563eb; }
+
+    /* Button Styling */
+    .stButton > button {
+        background-color: #2563eb;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        width: 100%;
+        transition: background-color 0.2s;
+    }
+    .stButton > button:hover {
+        background-color: #1d4ed8;
+        color: white;
+    }
+
+    /* Alert Boxes */
+    .success-box {
+        background-color: #ecfdf5;
+        border-left: 5px solid #059669;
+        padding: 1rem;
+        border-radius: 4px;
+        color: #065f46;
+        margin-bottom: 1rem;
+    }
+    .warning-box {
+        background-color: #fffbeb;
+        border-left: 5px solid #d97706;
+        padding: 1rem;
+        border-radius: 4px;
+        color: #92400e;
+        margin-bottom: 1rem;
+    }
+    .error-box {
+        background-color: #fef2f2;
+        border-left: 5px solid #dc2626;
+        padding: 1rem;
+        border-radius: 4px;
+        color: #991b1b;
+        margin-bottom: 1rem;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# MOCK DATA & LOGIC
+# 3. MOCK DATA & LOGIC
 # -----------------------------------------------------------------------------
-
-# Hardcoded Borrower Profiles
-# Scores are raw inputs (0-100 scale) to feed the formula
 BORROWERS = {
-    "1001": {
-        "name": "Tunde Bakare (Good)",
-        "repayment": 95, "severity": 90, "discipline": 85, "identity": 100, "context": 90,
-        "network_flag": False
-    },
-    "1002": {
-        "name": "Chidinma Okoro (Neutral)",
-        "repayment": 70, "severity": 60, "discipline": 65, "identity": 80, "context": 60,
-        "network_flag": False
-    },
-    "1003": {
-        "name": "Emeka Johnson (Bad)",
-        "repayment": 20, "severity": 10, "discipline": 30, "identity": 40, "context": 20,
-        "network_flag": True
-    }
+    "1001": { "name": "Tunde Bakare", "repayment": 95, "severity": 90, "discipline": 85, "identity": 100, "context": 90, "network_flag": False },
+    "1002": { "name": "Chidinma Okoro", "repayment": 70, "severity": 60, "discipline": 65, "identity": 80, "context": 60, "network_flag": False },
+    "1003": { "name": "Emeka Johnson", "repayment": 20, "severity": 10, "discipline": 30, "identity": 40, "context": 20, "network_flag": True }
 }
 
 def calculate_insurability(b):
-    """
-    Formula:
-    (0.35 * Repayment) + (0.20 * Severity) + (0.15 * Discipline) 
-    + (0.15 * Identity) + (0.15 * Context)
-    """
-    score = (
-        (0.35 * b['repayment']) +
-        (0.20 * b['severity']) +
-        (0.15 * b['discipline']) +
-        (0.15 * b['identity']) +
-        (0.15 * b['context'])
-    )
-    return round(score, 1)
+    return round((0.35 * b['repayment']) + (0.20 * b['severity']) + (0.15 * b['discipline']) + (0.15 * b['identity']) + (0.15 * b['context']), 1)
 
 def get_risk_assessment(score, network_flag):
     if network_flag:
-        return "REJECTED", "Network Blacklist", 0.0, "red"
-    
+        return "REJECTED", "Network Blacklist", 0.0, "text-red"
     if 80 <= score <= 100:
-        return "APPROVED", "Low Risk", 2.5, "green"
+        return "APPROVED", "Low Risk", 2.5, "text-green"
     elif 60 <= score <= 79:
-        return "APPROVED", "Medium Risk", 5.0, "orange"
+        return "APPROVED", "Medium Risk", 5.0, "text-orange"
     elif 40 <= score <= 59:
-        return "RESTRICTED", "High Risk", 12.0, "orange"
+        return "RESTRICTED", "High Risk", 12.0, "text-orange"
     else:
-        return "REJECTED", "Critical Risk", 0.0, "red"
+        return "REJECTED", "Critical Risk", 0.0, "text-red"
 
 # -----------------------------------------------------------------------------
-# SIDEBAR (Presenter Context)
+# 4. SIDEBAR
 # -----------------------------------------------------------------------------
 with st.sidebar:
-    st.header("🕵️ Presenter Guide")
-    st.info("Use these IDs to demo different scenarios:")
-    st.markdown("**1001**: Good Borrower (Low Premium)")
-    st.markdown("**1002**: Neutral Borrower (High Premium)")
-    st.markdown("**1003**: Strategic Defaulter (Blacklisted)")
+    st.image("https://cdn-icons-png.flaticon.com/512/2454/2454269.png", width=50) # Generic Shield Icon
+    st.title("Admin Controls")
+    st.markdown("**Demo IDs:**")
+    st.code("1001")
+    st.caption("Good Borrower (Low Rate)")
+    st.code("1002")
+    st.caption("Neutral (High Rate)")
+    st.code("1003")
+    st.caption("Fraudster (Blacklisted)")
     st.divider()
-    st.caption("EDITT System v1.0.4")
+    st.caption("EDITT System v2.0")
 
 # -----------------------------------------------------------------------------
-# MAIN UI
+# 5. MAIN UI
 # -----------------------------------------------------------------------------
 
-# Header
+# Hero Section
 st.title("🛡️ EDITT Insurance")
-st.markdown("### Insuring good loans so lenders can lend with confidence.")
+st.markdown("""
+<div style='background-color: #eff6ff; padding: 15px; border-radius: 10px; border: 1px solid #dbeafe; color: #1e40af;'>
+    <strong>Value Proposition:</strong> We insure qualified B2B loans so lenders can scale with confidence.
+</div>
+""", unsafe_allow_html=True)
+
 st.markdown("---")
 
-# SECTION 1: LOAN EVALUATION
-st.header("1. Loan Evaluation")
+# ---------------------------
+# SECTION 1: EVALUATION
+# ---------------------------
+st.header("1. Loan Underwriting")
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    borrower_id = st.text_input("Borrower ID", value="1001", help="Enter 1001, 1002, or 1003")
-with col2:
-    loan_amount = st.number_input("Loan Amount (₦)", value=50000, step=5000)
-with col3:
+c1, c2, c3 = st.columns(3)
+with c1:
+    borrower_id = st.text_input("Borrower ID", value="1001")
+with c2:
+    loan_amount = st.number_input("Principal (₦)", value=50000, step=5000)
+with c3:
     tenure = st.selectbox("Tenure", ["15 Days", "30 Days", "60 Days"])
 
-evaluate_btn = st.button("👉 Evaluate Loan Eligibility")
-
-# State management to keep results visible
-if 'evaluation_done' not in st.session_state:
-    st.session_state['evaluation_done'] = False
-
-if evaluate_btn:
-    # 1. Loading Simulation
-    with st.spinner('Checking Network History... Calculating Risk...'):
-        time.sleep(1.2) # Cinematic delay
+if st.button("👉 Analyze Risk & Eligibility"):
+    # Spinner
+    with st.spinner('Querying Network Database...'):
+        time.sleep(1.0)
     
-    # 2. Logic
     profile = BORROWERS.get(borrower_id)
     
     if not profile:
-        st.error("Borrower not found in database.")
-        st.session_state['evaluation_done'] = False
+        st.error("ID not found.")
     else:
         score = calculate_insurability(profile)
-        decision, band, premium_pct, color = get_risk_assessment(score, profile['network_flag'])
+        decision, band, premium_pct, color_class = get_risk_assessment(score, profile['network_flag'])
         
-        # Save to state
-        st.session_state['evaluation_done'] = True
-        st.session_state['score'] = score
-        st.session_state['decision'] = decision
-        st.session_state['band'] = band
-        st.session_state['premium_pct'] = premium_pct
-        st.session_state['color'] = color
-        st.session_state['flag'] = profile['network_flag']
-        st.session_state['loan_amount'] = loan_amount
-
-# Display Results if evaluated
-if st.session_state['evaluation_done']:
-    
-    # Visual Header for Decision
-    if st.session_state['decision'] == "APPROVED":
-        st.success(f"✅ LOAN INSURABLE: {st.session_state['band']}")
-    elif st.session_state['decision'] == "RESTRICTED":
-        st.warning(f"⚠️ PARTIAL COVERAGE: {st.session_state['band']}")
-    else:
-        st.error(f"❌ LOAN REJECTED: {st.session_state['band']}")
-
-    # Metrics Row
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Insurability Score", f"{st.session_state['score']}/100")
-    m2.metric("Risk Band", st.session_state['band'])
-    
-    premium_amt = (st.session_state['premium_pct']/100) * st.session_state['loan_amount']
-    m3.metric("Premium Rate", f"{st.session_state['premium_pct']}%")
-    m4.metric("Premium Cost", f"₦{premium_amt:,.0f}")
-
-    # Network Flag Alert
-    if st.session_state['flag']:
-        st.error("🚨 NETWORK ALERT: This identity is flagged for previous strategic default.")
-
-    # JSON Payload (Hidden/Optional)
-    with st.expander("View API Simulation (JSON)"):
-        st.json({
-            "status": "success",
-            "borrower_id": borrower_id,
-            "score": st.session_state['score'],
-            "risk_band": st.session_state['band'],
-            "approved": st.session_state['decision'] == "APPROVED",
-            "premium_ngn": premium_amt
+        # Save to session state
+        st.session_state.update({
+            'run': True, 'score': score, 'decision': decision,
+            'band': band, 'premium_pct': premium_pct,
+            'color': color_class, 'flag': profile['network_flag'],
+            'amt': loan_amount
         })
 
-    st.markdown("---")
+# Display Results
+if st.session_state.get('run'):
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Status Banner
+    decision = st.session_state['decision']
+    band = st.session_state['band']
+    
+    if decision == "APPROVED":
+        st.markdown(f'<div class="success-box">✅ <strong>APPROVED:</strong> This loan is eligible for Default Protection ({band}).</div>', unsafe_allow_html=True)
+    elif decision == "RESTRICTED":
+        st.markdown(f'<div class="warning-box">⚠️ <strong>RESTRICTED:</strong> Partial coverage only ({band}).</div>', unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div class="error-box">⛔ <strong>REJECTED:</strong> {band}. Do not lend.</div>', unsafe_allow_html=True)
 
-    # SECTION 2: DEFAULT SIMULATION (Only if approved/restricted)
-    if st.session_state['decision'] != "REJECTED":
-        st.header("2. Default Protection Simulation")
-        st.caption("Demonstrate what happens if this borrower fails to repay.")
+    # CARD LAYOUT
+    col1, col2, col3 = st.columns(3)
+    
+    # Card 1: Score
+    with col1:
+        st.markdown(f"""
+        <div class="st-card">
+            <div class="st-card-title">Insurability Score</div>
+            <div class="st-card-value {st.session_state['color']}">{st.session_state['score']}</div>
+            <div class="st-card-subtitle">Out of 100</div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        simulate_btn = st.button("👉 Simulate Default Event")
+    # Card 2: Premium
+    premium_amt = (st.session_state['premium_pct']/100) * st.session_state['amt']
+    with col2:
+        st.markdown(f"""
+        <div class="st-card">
+            <div class="st-card-title">Insurance Premium</div>
+            <div class="st-card-value">₦{premium_amt:,.0f}</div>
+            <div class="st-card-subtitle">Rate: {st.session_state['premium_pct']}%</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Card 3: Coverage Cap
+    coverage = st.session_state['amt'] * 0.80 if decision != "REJECTED" else 0
+    with col3:
+        st.markdown(f"""
+        <div class="st-card">
+            <div class="st-card-title">Max Coverage</div>
+            <div class="st-card-value text-blue">₦{coverage:,.0f}</div>
+            <div class="st-card-subtitle">80% of Principal</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Network Flag Warning
+    if st.session_state['flag']:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="background-color: #fee2e2; padding: 15px; border-radius: 10px; border: 1px solid #fca5a5; color: #991b1b; display: flex; align-items: center;">
+            <span style="font-size: 20px; margin-right: 10px;">🚨</span>
+            <div>
+                <strong>NETWORK MATCH FOUND:</strong> This identity is linked to a previous strategic default in the EDITT ecosystem.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ---------------------------
+    # SECTION 2: DEFAULT SIMULATION
+    # ---------------------------
+    if decision != "REJECTED":
+        st.markdown("---")
+        st.header("2. Default Protection Event")
+        st.info("Demonstration: Click below to simulate if this borrower fails to repay.")
         
-        if simulate_btn:
-            with st.spinner('Processing Claim... Verifying Default...'):
-                time.sleep(1.0)
+        if st.button("👉 Simulate Borrower Default"):
+            with st.spinner('Processing Claim...'):
+                time.sleep(1.5)
             
-            payout = st.session_state['loan_amount'] * 0.80
-            lender_loss = st.session_state['loan_amount'] - payout
+            payout = st.session_state['amt'] * 0.80
+            loss_without = st.session_state['amt']
+            loss_with = st.session_state['amt'] - payout
             
-            st.success("✅ Default Verified. Claim Approved.")
+            st.markdown(f'<div class="success-box">✅ <strong>CLAIM APPROVED:</strong> Payout processed instantly.</div>', unsafe_allow_html=True)
             
-            # Payout Visualization
+            # Comparison Cards
             d1, d2 = st.columns(2)
-            d1.metric("Insurance Payout (80%)", f"₦{payout:,.0f}", delta="Recovered Capital")
-            d2.metric("Lender Net Loss", f"₦{lender_loss:,.0f}", delta_color="inverse", delta="-80% Loss Reduction")
             
-            st.info(f"ℹ️ **Network Action:** Borrower {borrower_id} has been flagged across the EDITT ecosystem to prevent revolving debt.")
+            with d1:
+                st.markdown(f"""
+                <div class="st-card" style="border: 2px solid #f87171;">
+                    <div class="st-card-title">Loss WITHOUT Editt</div>
+                    <div class="st-card-value text-red" style="text-decoration: line-through;">-₦{loss_without:,.0f}</div>
+                    <div class="st-card-subtitle">100% Capital Lost</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            with d2:
+                st.markdown(f"""
+                <div class="st-card" style="border: 2px solid #34d399; background-color: #ecfdf5;">
+                    <div class="st-card-title">Loss WITH Editt</div>
+                    <div class="st-card-value text-green">-₦{loss_with:,.0f}</div>
+                    <div class="st-card-subtitle">Only 20% Risk Exposure</div>
+                </div>
+                """, unsafe_allow_html=True)
 
-            with st.expander("View Default API Event"):
-                st.json({
-                    "event": "loan_default",
-                    "claim_status": "approved",
-                    "payout_amount": payout,
-                    "borrower_action": "flagged_global"
-                })
-
-# SECTION 3: NETWORK SUMMARY (Always Visible)
+# ---------------------------
+# SECTION 3: ECOSYSTEM
+# ---------------------------
 st.markdown("---")
-st.header("3. Ecosystem Impact")
+st.header("3. Network Impact")
 
-impact_data = {
-    "Metric": ["Lender Default Loss", "Recovery Time", "Fraud Detection"],
-    "Without EDITT": ["100% of Principal", "90+ Days", "Siloed Data"],
-    "With EDITT": ["20% of Principal", "48 Hours", "Shared Network Intelligence"]
-}
-st.table(pd.DataFrame(impact_data))
+impact_html = """
+<div style="overflow-x: auto;">
+  <table style="width:100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <tr style="background-color: #1e3a8a; color: white; text-align: left;">
+      <th style="padding: 12px 15px;">Metric</th>
+      <th style="padding: 12px 15px;">Without EDITT</th>
+      <th style="padding: 12px 15px;">With EDITT</th>
+    </tr>
+    <tr style="background-color: white; border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 12px 15px; font-weight: bold;">Lender Loss on Default</td>
+      <td style="padding: 12px 15px; color: #dc2626;">100% of Principal</td>
+      <td style="padding: 12px 15px; color: #059669; font-weight: bold;">20% of Principal</td>
+    </tr>
+    <tr style="background-color: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+      <td style="padding: 12px 15px; font-weight: bold;">Recovery Speed</td>
+      <td style="padding: 12px 15px;">90+ Days</td>
+      <td style="padding: 12px 15px; color: #2563eb; font-weight: bold;">48 Hours</td>
+    </tr>
+    <tr style="background-color: white;">
+      <td style="padding: 12px 15px; font-weight: bold;">Fraud Prevention</td>
+      <td style="padding: 12px 15px;">Internal Data Only</td>
+      <td style="padding: 12px 15px; font-weight: bold;">Shared Network Blacklist</td>
+    </tr>
+  </table>
+</div>
+"""
+st.markdown(impact_html, unsafe_allow_html=True)
+st.markdown("<br><br>", unsafe_allow_html=True)
